@@ -11,11 +11,11 @@ function Myapp() {
   const [contract, setContract] = React.useState(null);
   const [networkType, setNetworkType] = React.useState(null);
   const [balance, setBalance] = React.useState(0);
-  const [value, setValue] = React.useState(null);
-
+  const [managerAccount, setManagerAccount] = React.useState(null);
   const fetchData = async () => {
-    console.log("fetchData");
+
     try {
+
       const web3 = await getWeb3();
       const accounts = await web3.eth.getAccounts();
       const networkId = await web3.eth.net.getId();
@@ -26,41 +26,39 @@ function Myapp() {
         Lottery.abi,
         deployedNetwork && deployedNetwork.address,
       );
-      console.log(accounts);
       setWeb3(web3);
-      setBalance(web3.utils.fromWei(balance, 'ether'));
+      setBalance(await web3.utils.fromWei(balance, 'ether'));
       setNetworkType(await web3.eth.net.getNetworkType());
-
+      console.log('here');
       setAccount(accounts);
       setContract(instance);
-      
+      setStorageVlaue(await instance.methods.getBlancd().call());
     } catch (error) {
       alert(
         `Failed to load web3, accounts, or contract. Check console for details.`,
       );
       console.error(error);
     }
+
   }
   React.useEffect(() => {
     fetchData();
 
-  }, [value]);
+  }, []);
 
-  window.ethereum.on('accountsChanged', function (accounts) {
-    // Time to reload your interface with accounts[0]!
-    console.log(accounts[0]);
-    setValue(accounts[0]);
-    setAccount(accounts[0]);
-    
-
+  window.ethereum.on('accountsChanged', (accounts) => {
+    setAccount(accounts);
+    if (web3) {
+      web3.eth.getBalance(accounts[0]).then(function (balance) {
+        setBalance(web3.utils.fromWei(balance, 'ether'));
+      });
+    }
   })
-  
-  // const runExample = async () => {
-  //     await contract.methods.set(5).send({ from: account[0] });
-  //     const response = await contract.methods.get().call();
-  //     setStorageVlaue(response);
-  // };
+  window.ethereum.on('chineChange', function (networkId) {
+    fetchData();
+  })
 
+  // all contract functions
   const sendEther = async () => {
     await contract.methods.payEthe().send({
       from: account[0],
@@ -70,18 +68,20 @@ function Myapp() {
     console.log(contract._address);
     connectMetaMask();
   }
-  const getBlancd = async () => {
-    let blancd = await contract.methods.getBlancd().call();
-    setStorageVlaue(blancd);
-  }
+  const getBlancd = async () => setStorageVlaue(await contract.methods.getBlancd().call());
+
   const winnerSelect = async () => {
     try {
+      if(managerAccount === account[0]){
       let data = await contract.methods.winnerSelect().send({
         from: account[0],
       });
+
       console.log(data);
       getBlancd();
-
+      }else{
+        alert("you are not manager");
+      }
     } catch (error) {
       alert(error.message);
       console.log(error);
@@ -92,6 +92,7 @@ function Myapp() {
   const manager = async () => {
     try {
       let data = await contract.methods.manager().call();
+      setManagerAccount(data);
       console.log(data);
 
     } catch (error) {
@@ -115,11 +116,11 @@ function Myapp() {
     setNetworkType(await web3.eth.net.getNetworkType());
     console.log(networkType);
     console.log(account);
-    let balance = await web3.eth.getBalance(account);
-    setBalance(web3.utils.fromWei(balance, 'ether'));
+    let balance = await web3.eth.getBalance(account[0]);
+    setBalance(await web3.utils.fromWei(balance, 'ether'));
   }
   if (!web3) {
-    
+
     return <div>Loading Web3, accounts, and contract...</div>;
   }
 
