@@ -33,6 +33,8 @@ function Myapp() {
       setAccount(accounts);
       setContract(instance);
       setStorageVlaue(await instance.methods.getBlancd().call());
+      let data = await instance.methods.manager().call();
+      setManagerAccount(data);
     } catch (error) {
       alert(
         `Failed to load web3, accounts, or contract. Check console for details.`,
@@ -43,8 +45,8 @@ function Myapp() {
   }
   React.useEffect(() => {
     fetchData();
-
   }, []);
+  
 
   window.ethereum.on('accountsChanged', (accounts) => {
     setAccount(accounts);
@@ -54,9 +56,12 @@ function Myapp() {
       });
     }
   })
+ 
   window.ethereum.on('chineChange', function (networkId) {
     fetchData();
   })
+
+  
 
   // all contract functions
   const sendEther = async () => {
@@ -68,10 +73,18 @@ function Myapp() {
     console.log(contract._address);
     connectMetaMask();
   }
-  const getBlancd = async () => setStorageVlaue(await contract.methods.getBlancd().call());
+  const getBlancd = async () =>{
+    let balance = await contract.methods.getBlancd().call();
+    setStorageVlaue(await web3.utils.fromWei(balance, 'ether'));
+
+  } 
+
+    
 
   const winnerSelect = async () => {
+    manager();
     try {
+      
       if(managerAccount === account[0]){
       let data = await contract.methods.winnerSelect().send({
         from: account[0],
@@ -94,6 +107,7 @@ function Myapp() {
       let data = await contract.methods.manager().call();
       setManagerAccount(data);
       console.log(data);
+      return data;
 
     } catch (error) {
       alert(error.message);
@@ -119,15 +133,18 @@ function Myapp() {
     let balance = await web3.eth.getBalance(account[0]);
     setBalance(await web3.utils.fromWei(balance, 'ether'));
   }
-  if (!web3) {
 
+  // if(managerAccount !== account){
+  //   connectMetaMask();
+  // }
+  if (!web3) {
     return <div>Loading Web3, accounts, and contract...</div>;
   }
 
   return (
     <div className="App">
 
-      <div>The stored value is: {storageVlue}</div>
+      <div>The stored value is: {storageVlue}  ether</div>
       <p>Account Number: {account}</p>
       <p>Network Type: {networkType}</p>
       <p>Balance: {balance} ETH</p>
